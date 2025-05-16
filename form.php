@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $application_id = $_SESSION['user_id'];
                 $stmt = $pdo->prepare("UPDATE Application SET FIO = :fio, Phone_number = :phone, Email = :email, 
                                       Birth_day = :dob, Gender = :gender, Biography = :bio, Contract_accepted = :contract
-                                      WHERE Application_ID = :app_id");
+                                      WHERE ID = :app_id");
                 $stmt->execute([
                     ':fio' => $formData['fio'],
                     ':phone' => $formData['phone'],

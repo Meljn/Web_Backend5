@@ -36,7 +36,7 @@ header('Content-Type: text/html; charset=utf-8');
 
 // Function to fetch application data for logged-in user
 function fetchApplicationData($pdo_conn, $application_id) {
-    $stmt = $pdo_conn->prepare("SELECT * FROM Application WHERE Application_ID = :id");
+    $stmt = $pdo_conn->prepare("SELECT * FROM Application WHERE ID = :id");
     $stmt->execute([':id' => $application_id]);
     $db_row = $stmt->fetch(PDO::FETCH_ASSOC);
 

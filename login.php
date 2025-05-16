@@ -42,12 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  exit;
             }
 
-            $stmt = $pdo->prepare("SELECT Application_ID, login, password_hash FROM Application WHERE login = :login");
+            $stmt = $pdo->prepare("SELECT id, login, password_hash FROM Application WHERE login = :login");
             $stmt->execute([':login' => $login]);
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password_hash'])) {
-                $_SESSION['user_id'] = $user['Application_ID'];
+                $_SESSION['user_id'] = $user['ID'];
                 $_SESSION['login'] = $user['login'];
                 if(isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
                 
