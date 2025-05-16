@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: text/html; charset=utf-8');
+session_start();
 
+// Функции для работы с полями формы
 function getFieldValue($fieldName, $default = '') {
     if (isset($_COOKIE["value_$fieldName"])) {
         $value = $_COOKIE["value_$fieldName"];
@@ -20,12 +22,26 @@ function getFieldError($fieldName) {
     return '';
 }
 
+// Проверка наличия ошибок
 $formErrors = [];
 foreach ($_COOKIE as $name => $value) {
     if (strpos($name, 'error_') === 0) {
         $formErrors[] = $value;
     }
 }
+
+// Получаем сгенерированные учетные данные из сессии
+$showCredentials = false;
+$credentials = [];
+if (isset($_SESSION['new_credentials'])) {
+    $showCredentials = true;
+    $credentials = $_SESSION['new_credentials'];
+    // Удаляем из сессии после отображения
+    unset($_SESSION['new_credentials']);
+}
+
+// Проверяем, авторизован ли пользователь
+$isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 ?>
 
 <!DOCTYPE html>
@@ -38,6 +54,18 @@ foreach ($_COOKIE as $name => $value) {
 </head>
 <body>
     <div class="form-container">
+        <?php if ($isLoggedIn): ?>
+            <div class="user-panel">
+                <p>Вы вошли как <?= htmlspecialchars($_SESSION['username']) ?></p>
+                <a href="edit.php" class="button">Редактировать данные</a>
+                <a href="logout.php" class="button">Выйти</a>
+            </div>
+        <?php else: ?>
+            <div class="login-panel">
+                <a href="login.php" class="button">Войти</a>
+            </div>
+        <?php endif; ?>
+        
         <h1>Форма обратной связи</h1>
 
         <?php if (!empty($formErrors)): ?>
@@ -53,7 +81,16 @@ foreach ($_COOKIE as $name => $value) {
 
         <?php if (isset($_GET['success'])): ?>
             <div class="success-message">
-                Данные успешно сохранены!
+                <p>Данные успешно сохранены!</p>
+                
+                <?php if ($showCredentials): ?>
+                <div class="credentials-box">
+                    <h3>Ваши учетные данные для входа:</h3>
+                    <p><strong>Логин:</strong> <?= htmlspecialchars($credentials['username']) ?></p>
+                    <p><strong>Пароль:</strong> <?= htmlspecialchars($credentials['password']) ?></p>
+                    <p class="warning">Сохраните эти данные! Они будут показаны только один раз.</p>
+                </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
