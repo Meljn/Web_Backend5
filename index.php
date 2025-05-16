@@ -2,55 +2,70 @@
 session_start();
 
 // --- Database Connection ---
-$db_host = 'localhost';
-$db_user = 'u68532'; // Replace with your actual database username
-$db_pass = '9110579'; // Replace with your actual database password
-$db_name = 'u68532'; // Replace with your actual database name
-
-try {
-    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Ошибка подключения к базе данных: " . $e->getMessage());
-}
+// ... (your DB connection code) ...
 // --- End Database Connection ---
 
 // --- Logout Logic ---
-if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    session_unset();
-    session_destroy();
-    // Clear success cookies that might repopulate form for new users
-    $cookieNames = array_keys($_COOKIE);
-    foreach ($cookieNames as $cookieName) {
-        if (strpos($cookieName, 'success_') === 0) {
-            setcookie($cookieName, '', time() - 3600, '/');
-        }
-    }
-    header('Location: index.php');
-    exit;
-}
+// ... (your logout logic) ...
 // --- End Logout Logic ---
 
 header('Content-Type: text/html; charset=utf-8');
 
+// ---- START DEBUGGING ----
+echo "<pre>DEBUG INFO:\n";
+echo "SESSION DATA:\n";
+var_dump($_SESSION);
+
+$is_logged_in_debug = isset($_SESSION['user_id']);
+echo "Is Logged In (isset(\$_SESSION['user_id'])): ";
+var_dump($is_logged_in_debug);
+
+if ($is_logged_in_debug) {
+    echo "User ID from session: ";
+    var_dump($_SESSION['user_id']);
+}
+echo "</pre><hr>";
+// ---- END DEBUGGING ----
+
+
 // Function to fetch application data for logged-in user
 function fetchApplicationData($pdo_conn, $application_id) {
-    $stmt = $pdo_conn->prepare("SELECT * FROM Application WHERE ID = :id");
+    // ---- START DEBUGGING fetchApplicationData ----
+    echo "<pre>DEBUG fetchApplicationData:\n";
+    echo "Fetching data for Application ID: ";
+    var_dump($application_id);
+    // ---- END DEBUGGING fetchApplicationData ----
+
+    // MAKE SURE 'Application_ID' IS THE CORRECT COLUMN NAME FOR YOUR TABLE'S PRIMARY KEY
+    $stmt = $pdo_conn->prepare("SELECT * FROM Application WHERE Application_ID = :id");
     $stmt->execute([':id' => $application_id]);
     $db_row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // ---- START DEBUGGING fetchApplicationData ----
+    echo "DB Row Fetched:\n";
+    var_dump($db_row);
+    // ---- END DEBUGGING fetchApplicationData ----
 
     if (!$db_row) return null;
 
     $form_data = [];
-    $form_data['fio'] = $db_row['FIO'];
-    $form_data['phone'] = $db_row['Phone_number'];
-    $form_data['email'] = $db_row['Email'];
-    $form_data['dob'] = $db_row['Birth_day'];
-    $form_data['gender'] = $db_row['Gender'];
-    $form_data['bio'] = $db_row['Biography'];
-    $form_data['contract'] = $db_row['Contract_accepted'] ? '1' : '0';
+    // ENSURE THESE COLUMN NAMES MATCH YOUR 'Application' TABLE EXACTLY
+    $form_data['fio'] = $db_row['FIO'] ?? null;
+    $form_data['phone'] = $db_row['Phone_number'] ?? null;
+    $form_data['email'] = $db_row['Email'] ?? null;
+    $form_data['dob'] = $db_row['Birth_day'] ?? null;
+    $form_data['gender'] = $db_row['Gender'] ?? null;
+    $form_data['bio'] = $db_row['Biography'] ?? null;
+    $form_data['contract'] = !empty($db_row['Contract_accepted']) ? '1' : '0';
 
+    // ---- START DEBUGGING fetchApplicationData ----
+    echo "Languages query for Application ID: ";
+    var_dump($application_id);
+    // ---- END DEBUGGING fetchApplicationData ----
+
+    // ENSURE 'Application_ID' IS THE CORRECT FOREIGN KEY COLUMN NAME IN 'Application_Languages'
+    // AND 'Language_ID' IS THE CORRECT PK IN 'Programming_Languages' AND FK IN 'Application_Languages'
+    // AND 'Name' IS THE CORRECT COLUMN IN 'Programming_Languages'
     $stmt_lang = $pdo_conn->prepare("
         SELECT pl.Name
         FROM Application_Languages al
@@ -59,15 +74,35 @@ function fetchApplicationData($pdo_conn, $application_id) {
     ");
     $stmt_lang->execute([':id' => $application_id]);
     $form_data['language'] = $stmt_lang->fetchAll(PDO::FETCH_COLUMN, 0);
+
+    // ---- START DEBUGGING fetchApplicationData ----
+    echo "Languages fetched:\n";
+    var_dump($form_data['language']);
+    echo "Full form_data to be returned:\n";
+    var_dump($form_data);
+    echo "</pre><hr>";
+    // ---- END DEBUGGING fetchApplicationData ----
     return $form_data;
 }
 
 $user_data_for_form = null;
-$is_logged_in = isset($_SESSION['user_id']);
+$is_logged_in = isset($_SESSION['user_id']); // This is the one used by the main logic
 
 if ($is_logged_in) {
     $user_data_for_form = fetchApplicationData($pdo, $_SESSION['user_id']);
+    // ---- START DEBUGGING ----
+    echo "<pre>DEBUG After fetchApplicationData call:\n";
+    echo "User Data For Form:\n";
+    var_dump($user_data_for_form);
+    echo "</pre><hr>";
+    // ---- END DEBUGGING ----
 }
+
+// ... (rest of your index.php: getFieldValue, getFieldError, HTML, etc.) ...
+// Make sure to replace Application_ID with your actual ID column name in fetchApplicationData
+// And ensure FIO, Phone_number, etc. are correct column names in your Application table.
+// And Application_ID, Language_ID, Name are correct in the languages query.
+
 
 function getFieldValue($fieldName, $default = '', $loggedInDbData = null) {
     // Priority 1: Value from a previous failed submission (sticky form)
