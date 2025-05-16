@@ -35,20 +35,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            // Ensure $pdo is an object and usable
             if (!is_object($pdo)) {
                 $_SESSION['login_error'] = 'Ошибка: Объект PDO не был корректно инициализирован.';
                  header('Location: index.php#login-form');
                  exit;
             }
 
-            $stmt = $pdo->prepare("SELECT id, login, password_hash FROM Application WHERE login = :login");
+            // 1. REPLACE "your_actual_primary_key_column_name" with the actual name of your ID column
+            $sql = "SELECT your_actual_primary_key_column_name, login, password_hash FROM Application WHERE login = :login";
+            $stmt = $pdo->prepare($sql);
+            
             $stmt->execute([':login' => $login]);
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password_hash'])) {
-                $_SESSION['user_id'] = $user['ID'];
+                // 2. REPLACE "your_actual_primary_key_column_name" with the actual name of your ID column
+                $_SESSION['user_id'] = $user['your_actual_primary_key_column_name']; 
                 $_SESSION['login'] = $user['login'];
+                
                 if(isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
                 
                 $cookieNames = array_keys($_COOKIE);
@@ -63,10 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['login_error'] = 'Неверный логин или пароль.';
             }
         } catch (PDOException $e) {
-            // More detailed error for debugging
             $_SESSION['login_error'] = 'Ошибка на сервере при попытке входа. Детали: ' . htmlspecialchars($e->getMessage());
-            // For more in-depth debugging, you might log the full trace:
-            // error_log("Login PDOException: " . $e->getMessage() . "\n" . $e->getTraceAsString());
         }
     } else {
         $_SESSION['login_error'] = implode(' ', $errors);
