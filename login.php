@@ -1,94 +1,69 @@
 <?php
-header('Content-Type: text/html; charset=utf-8');
 session_start();
 
-// Если пользователь уже вошел в систему, перенаправляем на главную страницу
-if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
-    header('Location: index.php');
+// --- Database Connection ---
+$db_host = 'localhost';
+$db_user = 'u68532'; // Replace with your actual database username
+$db_pass = '9110579'; // Replace with your actual database password
+$db_name = 'u68532'; // Replace with your actual database name
+
+try {
+    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $_SESSION['login_error'] = "Ошибка подключения к базе данных: " . $e->getMessage();
+    header('Location: index.php#login-form');
     exit;
 }
+// --- End Database Connection ---
 
-// Настройки базы данных
-$db_host = 'localhost';
-$db_user = 'u68532';
-$db_pass = '9110579';
-$db_name = 'u68532';
 
-$error = '';
-
-// Обработка формы входа
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+    $login = trim($_POST['login'] ?? '');
     $password = $_POST['password'] ?? '';
-    
-    if (empty($username) || empty($password)) {
-        $error = 'Пожалуйста, введите логин и пароль';
-    } else {
+    $errors = [];
+
+    if (empty($login)) {
+        $errors[] = 'Логин не может быть пустым.';
+    }
+    if (empty($password)) {
+        $errors[] = 'Пароль не может быть пустым.';
+    }
+
+    if (empty($errors)) {
         try {
-            // Подключение к базе данных
-            $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            // Поиск пользователя по логину
-            $stmt = $pdo->prepare("SELECT ID, Username, Password_hash FROM Application WHERE Username = :username");
-            $stmt->execute([':username' => $username]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($user && password_verify($password, $user['Password_hash'])) {
-                // Успешный вход, устанавливаем сессию
-                $_SESSION['logged_in'] = true;
-                $_SESSION['username'] = $user['Username'];
-                $_SESSION['user_id'] = $user['ID'];
+            $stmt = $pdo->prepare("SELECT Application_ID, login, password_hash FROM Application WHERE login = :login");
+            $stmt->execute([':login' => $login]);
+            $user = $stmt->fetch();
+
+            if ($user && password_verify($password, $user['password_hash'])) {
+                $_SESSION['user_id'] = $user['Application_ID'];
+                $_SESSION['login'] = $user['login'];
+                if(isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
                 
-                // Перенаправляем на главную страницу
+                // Clear any 'value_' or 'error_' cookies from previous attempts on this browser
+                $cookieNames = array_keys($_COOKIE);
+                foreach ($cookieNames as $cookieName) {
+                    if (strpos($cookieName, 'error_') === 0 || strpos($cookieName, 'value_') === 0 || strpos($cookieName, 'success_') === 0) {
+                        setcookie($cookieName, '', time() - 3600, '/');
+                    }
+                }
                 header('Location: index.php');
                 exit;
             } else {
-                $error = 'Неверный логин или пароль';
+                $_SESSION['login_error'] = 'Неверный логин или пароль.';
             }
         } catch (PDOException $e) {
-            $error = 'Ошибка при подключении к базе данных';
-            // В реальном приложении здесь нужно логировать ошибку, а не выводить её
+            $_SESSION['login_error'] = 'Ошибка на сервере при попытке входа.';
         }
+    } else {
+        $_SESSION['login_error'] = implode(' ', $errors);
     }
+    header('Location: index.php#login-form'); 
+    exit;
+} else {
+    header('Location: index.php');
+    exit;
 }
 ?>
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в систему</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="form-container login-form">
-        <h1>Вход в систему</h1>
-        
-        <?php if (!empty($error)): ?>
-            <div class="error-messages">
-                <p><?= htmlspecialchars($error) ?></p>
-            </div>
-        <?php endif; ?>
-        
-        <form method="post" action="login.php">
-            <div class="form-group">
-                <label for="username">Логин:</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Пароль:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            
-            <button type="submit">Войти</button>
-        </form>
-        
-        <div class="form-footer">
-            <a href="index.php">Вернуться на главную</a>
-        </div>
-    </div>
-</body>
-</html>
