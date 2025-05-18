@@ -46,9 +46,9 @@ if (isset($_SESSION['user_id'])) {
         
         // Загружаем выбранные языки
         $stmt = $pdo->prepare("SELECT pl.Name 
-                              FROM Programming_Languages pl
-                              JOIN Application_Languages al ON pl.Language_ID = al.Language_ID
-                              WHERE al.Application_ID = ?");
+                             FROM Programming_Languages pl
+                             JOIN Application_Languages al ON pl.Language_ID = al.Language_ID
+                             WHERE al.Application_ID = ?");
         $stmt->execute(array($_SESSION['app_id']));
         $userData['language'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
@@ -100,7 +100,6 @@ if (isset($_SESSION['user_id'])) {
                 <?php endif; ?>
             </div>
         <?php endif; ?>
-
         <form action="form.php" method="post">
             <div class="form-group <?php echo getFieldError('fio') ? 'has-error' : ''; ?>">
                 <label for="fio">ФИО:</label>
