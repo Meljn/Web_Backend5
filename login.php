@@ -1,81 +1,87 @@
 <?php
+header('Content-Type: text/html; charset=utf-8');
 session_start();
 
-// --- Database Connection ---
-$db_host = 'localhost';
-$db_user = 'u68532'; // Replace with your actual database username
-$db_pass = '9110579'; // Replace with your actual database password
-$db_name = 'u68532'; // Replace with your actual database name
+if (isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit();
+}
 
-$pdo = null; // Initialize pdo to null
+$db_host = 'localhost';
+$db_user = 'u68532';
+$db_pass = '9110579';
+$db_name = 'u68532';
+
 try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // This error is for the initial connection
-    $_SESSION['login_error'] = "Ошибка подключения к базе данных: " . htmlspecialchars($e->getMessage());
-    header('Location: index.php#login-form');
-    exit;
+    die("Ошибка подключения к базе данных: " . $e->getMessage());
 }
-// --- End Database Connection ---
 
-
+$error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = trim($_POST['login'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $errors = [];
+    $password = trim($_POST['password'] ?? '');
 
-    if (empty($login)) {
-        $errors[] = 'Логин не может быть пустым.';
-    }
-    if (empty($password)) {
-        $errors[] = 'Пароль не может быть пустым.';
-    }
-
-    if (empty($errors)) {
-        try {
-            if (!is_object($pdo)) {
-                $_SESSION['login_error'] = 'Ошибка: Объект PDO не был корректно инициализирован.';
-                 header('Location: index.php#login-form');
-                 exit;
-            }
-
-            // 1. REPLACE "your_actual_primary_key_column_name" with the actual name of your ID column
-            $sql = "SELECT your_actual_primary_key_column_name, login, password_hash FROM Application WHERE login = :login";
-            $stmt = $pdo->prepare($sql);
-            
-            $stmt->execute([':login' => $login]);
-            $user = $stmt->fetch();
-
-            if ($user && password_verify($password, $user['password_hash'])) {
-                // 2. REPLACE "your_actual_primary_key_column_name" with the actual name of your ID column
-                $_SESSION['user_id'] = $user['your_actual_primary_key_column_name']; 
-                $_SESSION['login'] = $user['login'];
-                
-                if(isset($_SESSION['login_error'])) unset($_SESSION['login_error']);
-                
-                $cookieNames = array_keys($_COOKIE);
-                foreach ($cookieNames as $cookieName) {
-                    if (strpos($cookieName, 'error_') === 0 || strpos($cookieName, 'value_') === 0 || strpos($cookieName, 'success_') === 0) {
-                        setcookie($cookieName, '', time() - 3600, '/');
-                    }
-                }
-                header('Location: index.php');
-                exit;
-            } else {
-                $_SESSION['login_error'] = 'Неверный логин или пароль.';
-            }
-        } catch (PDOException $e) {
-            $_SESSION['login_error'] = 'Ошибка на сервере при попытке входа. Детали: ' . htmlspecialchars($e->getMessage());
-        }
+    if (empty($login) || empty($password)) {
+        $error = 'Логин и пароль обязательны для заполнения';
     } else {
-        $_SESSION['login_error'] = implode(' ', $errors);
+        $stmt = $pdo->prepare("SELECT u.UserID, u.Login, u.ApplicationID, a.FIO 
+                              FROM Users u
+                              JOIN Application a ON u.ApplicationID = a.ID
+                              WHERE u.Login = ?");
+        $stmt->execute([$login]);
+        $user = $stmt->fetch();
+
+        if ($user) {
+            // Проверяем пароль
+            $stmt = $pdo->prepare("SELECT PasswordHash FROM Users WHERE Login = ?");
+            $stmt->execute([$login]);
+            $dbPassword = $stmt->fetchColumn();
+            
+            if ($dbPassword && password_verify($password, $dbPassword)) {
+                $_SESSION['user_id'] = $user['UserID'];
+                $_SESSION['login'] = $user['Login'];
+                $_SESSION['app_id'] = $user['ApplicationID'];
+                $_SESSION['fio'] = $user['FIO'];
+                header('Location: index.php');
+                exit();
+            }
+        }
+        $error = 'Неверный логин или пароль';
     }
-    header('Location: index.php#login-form'); 
-    exit;
-} else {
-    header('Location: index.php');
-    exit;
 }
 ?>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="form-container">
+        <h1>Вход в систему</h1>
+        
+        <?php if ($error): ?>
+            <div class="error-messages"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <form method="post">
+            <div class="form-group">
+                <label>Логин:</label>
+                <input type="text" name="login" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Пароль:</label>
+                <input type="password" name="password" required>
+            </div>
+            
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -8,17 +8,16 @@ body {
 }
 
 .form-container {
-    max-width: 800px;
-    margin: 20px auto;
+    max-width: 600px;
+    margin: 0 auto;
     padding: 25px;
-    background-color: #262626;
+    background: #262626;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     border: 1px solid #333;
 }
 
-h1, .form-container h1 {
-    text-align: center;
+.form-container h1 {
     color: #f0f0f0;
     font-size: 24px;
     margin-bottom: 20px;
@@ -26,25 +25,23 @@ h1, .form-container h1 {
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
-label,
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-weight: 500;
     color: #d1d1d1;
     font-size: 15px;
 }
 
-input[type="text"],
-input[type="tel"],
-input[type="email"],
-input[type="date"],
-input[type="password"],
-textarea,
-select {
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.form-group input[type="email"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid #404040;
@@ -56,8 +53,21 @@ select {
     transition: border-color 0.2s;
 }
 
-input[type="radio"],
-input[type="checkbox"] {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #4d90fe;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.2);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-group > label > input[type="radio"],
+.form-group > label > input[type="checkbox"] {
     margin-right: 10px;
     transform: scale(1.1);
 }
@@ -68,11 +78,6 @@ input[type="checkbox"] {
     align-items: center;
     margin-right: 20px;
     cursor: pointer;
-}
-
-textarea {
-    resize: vertical;
-    min-height: 120px;
 }
 
 select[multiple] {
@@ -92,17 +97,8 @@ option:checked {
     color: white;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: #4d90fe;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.2);
-}
-
-button,
 .form-group button {
-    background-color: #4CAF50;
+    background-color: #1a73e8;
     color: white;
     padding: 14px 24px;
     border: none;
@@ -114,31 +110,14 @@ button,
     transition: background-color 0.2s;
 }
 
-button:hover,
 .form-group button:hover {
-    background-color: #45a049;
+    background-color: #1765cc;
 }
 
-.button {
-    display: inline-block;
-    padding: 8px 12px;
-    background-color: #2196F3;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: background-color 0.3s;
-}
-
-.button:hover {
-    background-color: #0b7dda;
-}
-
-.error-container,
-.error-messages {
-    max-width: 800px;
+.error-container {
+    max-width: 600px;
     margin: 20px auto;
-    padding: 15px;
+    padding: 20px;
     background: #2e1f1f;
     border-left: 4px solid #d65454;
     border-radius: 8px;
@@ -160,74 +139,32 @@ button:hover,
     margin-bottom: 6px;
 }
 
-.success-container,
-.success-message {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 15px;
-    background: #1f2e1f;
-    border-left: 4px solid #81c784;
-    border-radius: 8px;
-    color: #a5d6a7;
-}
-
-.input-error,
-.has-error input,
-.has-error textarea,
-.has-error select {
-    border: 2px solid #d65454;
-}
-
-.error {
-    color: #d65454;
-    font-size: 0.8em;
-    margin-top: 5px;
-}
-
-.credentials-box {
-    background-color: #fff3cd;
-    border: 1px solid #ffeeba;
-    padding: 15px;
-    margin-top: 15px;
-    border-radius: 4px;
-}
-
-.credentials-box p.warning {
-    color: #856404;
-    font-weight: bold;
-    margin-top: 10px;
-}
-
-.user-panel, .login-panel {
-    background-color: #e3f2fd;
-    padding: 10px 15px;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.form-footer {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.form-footer a,
 .error-container a,
 .success-container a {
+    display: inline-block;
+    margin-top: 15px;
     color: #8ab4f8;
     text-decoration: none;
     font-weight: 500;
 }
 
-.form-footer a:hover {
-    text-decoration: underline;
+.success-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #1f2e1f;
+    border-left: 4px solid #81c784;
+    border-radius: 8px;
 }
 
-.login-form {
-    max-width: 500px;
-    margin: 0 auto;
+.success-container h2 {
+    color: #a5d6a7;
+    margin-top: 0;
+    font-size: 20px;
+}
+
+.input-error {
+    border: 2px solid #d65454;
 }
 
 select[multiple]::-webkit-scrollbar {
@@ -239,12 +176,91 @@ select[multiple]::-webkit-scrollbar-thumb {
     border-radius: 4px;
 }
 
+.error {
+    color: #d65454;
+    font-size: 0.8em;
+    margin-top: 5px;
+}
+.has-error {
+    border: 1px solid #d65454;
+}
+.error-messages {
+    color: #d65454;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #d65454;
+    border-radius: 5px;
+}
+.form-group {
+    margin-bottom: 15px;
+}
+
+.success-message {
+            background-color: #eeffee;
+            border: 1px solid #00aa00;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #00aa00;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+input[type="text"],
+input[type="tel"],
+input[type="email"],
+input[type="date"],
+textarea,
+select {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+select[multiple] {
+    height: 100px;
+}
+button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #45a049;
+}
+
+.logout-panel {
+    background: #333;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    color: white;
+    text-align: right;
+}
+
+.logout-panel form {
+    display: inline-block;
+    margin-left: 15px;
+}
+
+.logout-panel button {
+    background: #d33;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
 @media (max-width: 640px) {
     .form-container {
         padding: 18px;
         border-radius: 0;
     }
-
+    
     body {
         padding: 12px;
     }
