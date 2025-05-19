@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = trim($_POST['password'] ?? '');
     
     try {
-        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_user, $db_pass);
+        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $stmt = $pdo->prepare("SELECT * FROM Users WHERE login = ?");
@@ -47,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -62,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <?php if (!empty($_SESSION['error_message'])): ?>
             <div class="error-message">
-                <?= htmlspecialchars($_SESSION['error_message']) ?>
+                <?= htmlspecialchars($_SESSION['error_message'], ENT_QUOTES, 'UTF-8') ?>
             </div>
             <?php unset($_SESSION['error_message']); ?>
         <?php endif; ?>

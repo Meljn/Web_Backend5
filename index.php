@@ -5,10 +5,10 @@ header('Content-Type: text/html; charset=utf-8');
 function getFieldValue($fieldName, $default = '') {
     if (isset($_COOKIE["value_$fieldName"])) {
         $value = $_COOKIE["value_$fieldName"];
-        return htmlspecialchars($value);
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
     if (isset($_COOKIE["success_$fieldName"])) {
-        return htmlspecialchars($_COOKIE["success_$fieldName"]);
+        return htmlspecialchars($_COOKIE["success_$fieldName"], ENT_QUOTES, 'UTF-8');
     }
     return $default;
 }
@@ -16,7 +16,7 @@ function getFieldValue($fieldName, $default = '') {
 function getFieldError($fieldName) {
     if (isset($_COOKIE["error_$fieldName"])) {
         $error = $_COOKIE["error_$fieldName"];
-        return htmlspecialchars($error);
+        return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
     }
     return '';
 }
@@ -24,11 +24,12 @@ function getFieldError($fieldName) {
 $formErrors = [];
 foreach ($_COOKIE as $name => $value) {
     if (strpos($name, 'error_') === 0) {
-        $formErrors[] = $value;
+        $formErrors[] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 }
-?>
 
+$showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password']);
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -41,9 +42,9 @@ foreach ($_COOKIE as $name => $value) {
     <div class="form-container">
         <h1>Форма обратной связи</h1>
 
-        <?php if (!empty($_SESSION['login'])): ?>
+        <?php if (isset($_SESSION['login'])): ?>
             <div class="user-info">
-                Вы вошли как: <?= htmlspecialchars($_SESSION['login']) ?>
+                Вы вошли как: <?= htmlspecialchars($_SESSION['login'], ENT_QUOTES, 'UTF-8') ?>
                 <a href="login.php?action=logout" class="logout-link">Выйти</a>
             </div>
         <?php endif; ?>
@@ -61,12 +62,12 @@ foreach ($_COOKIE as $name => $value) {
 
         <?php if (isset($_GET['success'])): ?>
             <div class="success-message">
-                Данные успешно сохранены!<br>
-                <?php if (isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password'])): ?>
+                Данные успешно сохранены!
+                <?php if ($showCredentials): ?>
                     <div class="credentials">
-                        Ваши данные для входа:<br>
-                        Логин: <?= htmlspecialchars($_COOKIE['generated_login']) ?><br>
-                        Пароль: <?= htmlspecialchars($_COOKIE['generated_password']) ?>
+                        <strong>Ваши данные для входа:</strong><br>
+                        Логин: <?= htmlspecialchars($_COOKIE['generated_login'], ENT_QUOTES, 'UTF-8') ?><br>
+                        Пароль: <?= htmlspecialchars($_COOKIE['generated_password'], ENT_QUOTES, 'UTF-8') ?>
                     </div>
                     <a href="login.php" class="login-link">Войти для редактирования</a>
                 <?php endif; ?>
@@ -74,47 +75,47 @@ foreach ($_COOKIE as $name => $value) {
         <?php endif; ?>
 
         <form action="form.php" method="post">
-            <div class="form-group <?= getFieldError('fio') ? 'has-error' : '' ?>">
-                <label for="fio">ФИО:</label>
-                <input type="text" id="fio" name="fio" value="<?= getFieldValue('fio') ?>" required>
-                <?php if ($error = getFieldError('fio')): ?>
+            <div class="form-group <?= getFieldError('FIO') ? 'has-error' : '' ?>">
+                <label for="FIO">ФИО:</label>
+                <input type="text" id="FIO" name="FIO" value="<?= getFieldValue('FIO') ?>" required>
+                <?php if ($error = getFieldError('FIO')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('phone') ? 'has-error' : '' ?>">
-                <label for="phone">Телефон:</label>
-                <input type="tel" id="phone" name="phone" value="<?= getFieldValue('phone') ?>" required>
-                <?php if ($error = getFieldError('phone')): ?>
+            <div class="form-group <?= getFieldError('Phone_number') ? 'has-error' : '' ?>">
+                <label for="Phone_number">Телефон:</label>
+                <input type="tel" id="Phone_number" name="Phone_number" value="<?= getFieldValue('Phone_number') ?>" required>
+                <?php if ($error = getFieldError('Phone_number')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('email') ? 'has-error' : '' ?>">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" value="<?= getFieldValue('email') ?>" required>
-                <?php if ($error = getFieldError('email')): ?>
+            <div class="form-group <?= getFieldError('Email') ? 'has-error' : '' ?>">
+                <label for="Email">Email:</label>
+                <input type="email" id="Email" name="Email" value="<?= getFieldValue('Email') ?>" required>
+                <?php if ($error = getFieldError('Email')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('dob') ? 'has-error' : '' ?>">
-                <label for="dob">Дата рождения:</label>
-                <input type="date" id="dob" name="dob" value="<?= getFieldValue('dob') ?>" required>
-                <?php if ($error = getFieldError('dob')): ?>
+            <div class="form-group <?= getFieldError('Birth_day') ? 'has-error' : '' ?>">
+                <label for="Birth_day">Дата рождения:</label>
+                <input type="date" id="Birth_day" name="Birth_day" value="<?= getFieldValue('Birth_day') ?>" required>
+                <?php if ($error = getFieldError('Birth_day')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('gender') ? 'has-error' : '' ?>">
+            <div class="form-group <?= getFieldError('Gender') ? 'has-error' : '' ?>">
                 <label>Пол:</label>
                 <label>
-                    <input type="radio" name="gender" value="male" <?= getFieldValue('gender') === 'male' ? 'checked' : '' ?> required> Мужской
+                    <input type="radio" name="Gender" value="male" <?= getFieldValue('Gender') === 'male' ? 'checked' : '' ?> required> Мужской
                 </label>
                 <label>
-                    <input type="radio" name="gender" value="female" <?= getFieldValue('gender') === 'female' ? 'checked' : '' ?>> Женский
+                    <input type="radio" name="Gender" value="female" <?= getFieldValue('Gender') === 'female' ? 'checked' : '' ?>> Женский
                 </label>
-                <?php if ($error = getFieldError('gender')): ?>
+                <?php if ($error = getFieldError('Gender')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
@@ -126,8 +127,8 @@ foreach ($_COOKIE as $name => $value) {
                     $languages = ['Pascal', 'C', 'C++', 'JavaScript', 'PHP', 'Python', 'Java', 'Haskell', 'Clojure', 'Prolog', 'Scala', 'Go'];
                     $selected = explode(',', getFieldValue('language', ''));
                     foreach ($languages as $lang): ?>
-                        <option value="<?= htmlspecialchars($lang) ?>" <?= in_array($lang, $selected) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($lang) ?>
+                        <option value="<?= htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') ?>" <?= in_array($lang, $selected) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($lang, ENT_QUOTES, 'UTF-8') ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -136,25 +137,25 @@ foreach ($_COOKIE as $name => $value) {
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('bio') ? 'has-error' : '' ?>">
-                <label for="bio">Биография:</label>
-                <textarea id="bio" name="bio" rows="5" required><?= getFieldValue('bio') ?></textarea>
-                <?php if ($error = getFieldError('bio')): ?>
+            <div class="form-group <?= getFieldError('Biography') ? 'has-error' : '' ?>">
+                <label for="Biography">Биография:</label>
+                <textarea id="Biography" name="Biography" rows="5" required><?= getFieldValue('Biography') ?></textarea>
+                <?php if ($error = getFieldError('Biography')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <div class="form-group <?= getFieldError('contract') ? 'has-error' : '' ?>">
+            <div class="form-group <?= getFieldError('Contract_accepted') ? 'has-error' : '' ?>">
                 <label>
-                    <input type="checkbox" name="contract" <?= getFieldValue('contract') === '1' ? 'checked' : '' ?> required>
+                    <input type="checkbox" name="Contract_accepted" value="1" <?= getFieldValue('Contract_accepted') === '1' ? 'checked' : '' ?> required>
                     Согласен с условиями
                 </label>
-                <?php if ($error = getFieldError('contract')): ?>
+                <?php if ($error = getFieldError('Contract_accepted')): ?>
                     <div class="error"><?= $error ?></div>
                 <?php endif; ?>
             </div>
 
-            <button type="submit">Отправить</button>
+            <button type="submit"><?= isset($_SESSION['user_id']) ? 'Обновить данные' : 'Отправить' ?></button>
         </form>
     </div>
 </body>
