@@ -6,7 +6,6 @@ $db_user = 'u68532';
 $db_pass = '9110579';
 $db_name = 'u68532';
 
-// Выход из системы
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     session_unset();
     session_destroy();
@@ -14,13 +13,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     exit();
 }
 
-// Если уже авторизован - перенаправляем
 if (!empty($_SESSION['login'])) {
     header('Location: index.php');
     exit();
 }
 
-// Обработка формы входа
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = trim($_POST['login'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -36,6 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['login'] = $user['login'];
             $_SESSION['user_id'] = $user['id'];
+            
+            foreach ($_COOKIE as $name => $value) {
+                if (strpos($name, 'value_') === 0 || strpos($name, 'success_') === 0) {
+                    setcookie($name, '', time() - 3600, '/');
+                }
+            }
+            
             header('Location: index.php');
             exit();
         } else {
@@ -44,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
     } catch (PDOException $e) {
-        $_SESSION['error_message'] = 'Ошибка системы';
+        $_SESSION['error_message'] = 'Ошибка системы. Попробуйте позже.';
         header('Location: login.php');
         exit();
     }
