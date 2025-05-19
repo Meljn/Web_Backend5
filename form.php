@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Gender = :Gender, 
                 Biography = :Biography,
                 Contract_accepted = :Contract_accepted
-                WHERE ID = (SELECT ID FROM Application WHERE user_id = :user_id LIMIT 1)");
+                WHERE user_id = :user_id");
             
             $stmt->execute([
                 ':FIO' => $formData['FIO'],
