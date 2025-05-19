@@ -300,6 +300,12 @@ select[multiple]::-webkit-scrollbar-thumb {
     border-radius: 5px;
 }
 
+.auth-links {
+    margin-bottom: 20px;
+    text-align: right;
+}
+
+
 label {
     display: block;
     margin-bottom: 5px;

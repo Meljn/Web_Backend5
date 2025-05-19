@@ -2,10 +2,10 @@
 session_start();
 header('Content-Type: text/html; charset=utf-8');
 
+// Функция для безопасного получения значений полей
 function getFieldValue($fieldName, $default = '') {
     if (isset($_COOKIE["value_$fieldName"])) {
-        $value = $_COOKIE["value_$fieldName"];
-        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($_COOKIE["value_$fieldName"], ENT_QUOTES, 'UTF-8');
     }
     if (isset($_COOKIE["success_$fieldName"])) {
         return htmlspecialchars($_COOKIE["success_$fieldName"], ENT_QUOTES, 'UTF-8');
@@ -13,22 +13,21 @@ function getFieldValue($fieldName, $default = '') {
     return $default;
 }
 
+// Функция для получения ошибок полей
 function getFieldError($fieldName) {
     if (isset($_COOKIE["error_$fieldName"])) {
-        $error = $_COOKIE["error_$fieldName"];
-        return htmlspecialchars($error, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($_COOKIE["error_$fieldName"], ENT_QUOTES, 'UTF-8');
     }
     return '';
 }
 
+// Сбор всех ошибок формы
 $formErrors = [];
 foreach ($_COOKIE as $name => $value) {
     if (strpos($name, 'error_') === 0) {
         $formErrors[] = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 }
-
-$showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password']);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -40,15 +39,21 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
 </head>
 <body>
     <div class="form-container">
+        <!-- Блок авторизации -->
+        <div class="auth-links">
+            <?php if (isset($_SESSION['login'])): ?>
+                <div class="user-info">
+                    Вы вошли как: <?= htmlspecialchars($_SESSION['login'], ENT_QUOTES, 'UTF-8') ?>
+                    <a href="login.php?action=logout" class="logout-link">Выйти</a>
+                </div>
+            <?php else: ?>
+                <a href="login.php" class="login-link">Вход в систему</a>
+            <?php endif; ?>
+        </div>
+
         <h1>Форма обратной связи</h1>
 
-        <?php if (isset($_SESSION['login'])): ?>
-            <div class="user-info">
-                Вы вошли как: <?= htmlspecialchars($_SESSION['login'], ENT_QUOTES, 'UTF-8') ?>
-                <a href="login.php?action=logout" class="logout-link">Выйти</a>
-            </div>
-        <?php endif; ?>
-
+        <!-- Вывод ошибок -->
         <?php if (!empty($formErrors)): ?>
             <div class="error-messages">
                 <h3>Ошибки при заполнении формы:</h3>
@@ -60,21 +65,23 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
             </div>
         <?php endif; ?>
 
+        <!-- Сообщение об успешной отправке -->
         <?php if (isset($_GET['success'])): ?>
             <div class="success-message">
                 Данные успешно сохранены!
-                <?php if ($showCredentials): ?>
+                <?php if (isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password'])): ?>
                     <div class="credentials">
                         <strong>Ваши данные для входа:</strong><br>
                         Логин: <?= htmlspecialchars($_COOKIE['generated_login'], ENT_QUOTES, 'UTF-8') ?><br>
                         Пароль: <?= htmlspecialchars($_COOKIE['generated_password'], ENT_QUOTES, 'UTF-8') ?>
                     </div>
-                    <a href="login.php" class="login-link">Войти для редактирования</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
 
+        <!-- Форма -->
         <form action="form.php" method="post">
+            <!-- Поле ФИО -->
             <div class="form-group <?= getFieldError('FIO') ? 'has-error' : '' ?>">
                 <label for="FIO">ФИО:</label>
                 <input type="text" id="FIO" name="FIO" value="<?= getFieldValue('FIO') ?>" required>
@@ -83,6 +90,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Телефон -->
             <div class="form-group <?= getFieldError('Phone_number') ? 'has-error' : '' ?>">
                 <label for="Phone_number">Телефон:</label>
                 <input type="tel" id="Phone_number" name="Phone_number" value="<?= getFieldValue('Phone_number') ?>" required>
@@ -91,6 +99,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Email -->
             <div class="form-group <?= getFieldError('Email') ? 'has-error' : '' ?>">
                 <label for="Email">Email:</label>
                 <input type="email" id="Email" name="Email" value="<?= getFieldValue('Email') ?>" required>
@@ -99,6 +108,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Дата рождения -->
             <div class="form-group <?= getFieldError('Birth_day') ? 'has-error' : '' ?>">
                 <label for="Birth_day">Дата рождения:</label>
                 <input type="date" id="Birth_day" name="Birth_day" value="<?= getFieldValue('Birth_day') ?>" required>
@@ -107,6 +117,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Пол -->
             <div class="form-group <?= getFieldError('Gender') ? 'has-error' : '' ?>">
                 <label>Пол:</label>
                 <label>
@@ -120,6 +131,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Языки программирования -->
             <div class="form-group <?= getFieldError('language') ? 'has-error' : '' ?>">
                 <label for="language">Любимые языки программирования:</label>
                 <select id="language" name="language[]" multiple required>
@@ -137,6 +149,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Поле Биография -->
             <div class="form-group <?= getFieldError('Biography') ? 'has-error' : '' ?>">
                 <label for="Biography">Биография:</label>
                 <textarea id="Biography" name="Biography" rows="5" required><?= getFieldValue('Biography') ?></textarea>
@@ -145,6 +158,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Чекбокс согласия -->
             <div class="form-group <?= getFieldError('Contract_accepted') ? 'has-error' : '' ?>">
                 <label>
                     <input type="checkbox" name="Contract_accepted" value="1" <?= getFieldValue('Contract_accepted') === '1' ? 'checked' : '' ?> required>
@@ -155,6 +169,7 @@ $showCredentials = isset($_GET['success']) && isset($_COOKIE['generated_login'])
                 <?php endif; ?>
             </div>
 
+            <!-- Кнопка отправки -->
             <button type="submit"><?= isset($_SESSION['user_id']) ? 'Обновить данные' : 'Отправить' ?></button>
         </form>
     </div>

@@ -2,28 +2,32 @@
 session_start();
 header('Content-Type: text/html; charset=utf-8');
 
+// Настройки базы данных
 $db_host = 'localhost';
 $db_user = 'u68532';
 $db_pass = '9110579';
 $db_name = 'u68532';
 
+// Подключение к БД
 try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("SET NAMES 'utf8mb4'");
+    $pdo->exec("SET NAMES utf8mb4");
 } catch (PDOException $e) {
     die("Ошибка подключения к базе данных: " . $e->getMessage());
 }
 
+// Обработка POST-запроса
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     $formData = [];
 
+    // Обработка данных формы
     foreach ($_POST as $key => $value) {
         $formData[$key] = is_array($value) ? $value : trim($value);
     }
 
-    // Валидация полей (соответствует именам полей в вашей БД)
+    // Валидация полей
     if (empty($formData['FIO'])) {
         $errors['FIO'] = 'Поле ФИО обязательно для заполнения';
     } elseif (!preg_match('/^[A-Za-zА-Яа-яЁё\s]+$/u', $formData['FIO'])) {
@@ -66,21 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['Contract_accepted'] = 'Необходимо согласиться с условиями';
     }
 
+    // Если есть ошибки - сохраняем их и возвращаем на форму
     if (!empty($errors)) {
         foreach ($errors as $key => $message) {
             setcookie("error_$key", $message, time() + 3600, '/');
         }
         foreach ($formData as $key => $value) {
-            if (!is_array($value)) {
-                setcookie("value_$key", $value, time() + 3600, '/');
-            } else {
-                setcookie("value_$key", implode(',', $value), time() + 3600, '/');
-            }
+            $value = is_array($value) ? implode(',', $value) : $value;
+            setcookie("value_$key", $value, time() + 3600, '/');
         }
         header('Location: index.php');
         exit;
     }
 
+    // Очистка старых куки с ошибками
     foreach ($_COOKIE as $name => $value) {
         if (strpos($name, 'error_') === 0 || strpos($name, 'value_') === 0) {
             setcookie($name, '', time() - 3600, '/');
@@ -91,67 +94,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         if (isset($_SESSION['user_id'])) {
+            // Обновление существующей заявки для авторизованного пользователя
             $user_id = $_SESSION['user_id'];
             
-            // Обновляем существующую заявку
             $stmt = $pdo->prepare("UPDATE Application SET 
-                FIO = :FIO, 
-                Phone_number = :Phone_number, 
-                Email = :Email, 
-                Birth_day = :Birth_day, 
-                Gender = :Gender, 
-                Biography = :Biography,
-                Contract_accepted = :Contract_accepted
+                FIO = :fio, 
+                Phone_number = :phone, 
+                Email = :email, 
+                Birth_day = :birth_day, 
+                Gender = :gender, 
+                Biography = :bio, 
+                Contract_accepted = :contract
                 WHERE user_id = :user_id");
             
             $stmt->execute([
-                ':FIO' => $formData['FIO'],
-                ':Phone_number' => $formData['Phone_number'],
-                ':Email' => $formData['Email'],
-                ':Birth_day' => $formData['Birth_day'],
-                ':Gender' => $formData['Gender'],
-                ':Biography' => $formData['Biography'],
-                ':Contract_accepted' => $formData['Contract_accepted'],
+                ':fio' => $formData['FIO'],
+                ':phone' => $formData['Phone_number'],
+                ':email' => $formData['Email'],
+                ':birth_day' => $formData['Birth_day'],
+                ':gender' => $formData['Gender'],
+                ':bio' => $formData['Biography'],
+                ':contract' => $formData['Contract_accepted'],
                 ':user_id' => $user_id
             ]);
             
             // Получаем ID заявки
-            $stmt = $pdo->prepare("SELECT ID FROM Application WHERE user_id = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT ID FROM Application WHERE user_id = ?");
             $stmt->execute([$user_id]);
             $application_id = $stmt->fetchColumn();
             
-            // Удаляем старые языки
+            // Удаляем старые языки программирования
             $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
             $stmt->execute([$application_id]);
         } else {
-            // Создаем нового пользователя
+            // Создание нового пользователя и заявки
             $login = 'user_' . bin2hex(random_bytes(4));
             $password = bin2hex(random_bytes(4));
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
+            // Сохраняем пользователя
             $stmt = $pdo->prepare("INSERT INTO Users (login, password) VALUES (?, ?)");
             $stmt->execute([$login, $password_hash]);
             $user_id = $pdo->lastInsertId();
 
-            setcookie('generated_login', $login, time() + 3600, '/');
-            setcookie('generated_password', $password, time() + 3600, '/');
-
-            // Создаем новую заявку
+            // Сохраняем заявку
             $stmt = $pdo->prepare("INSERT INTO Application 
-                (FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted, user_id) 
-                VALUES (:FIO, :Phone_number, :Email, :Birth_day, :Gender, :Biography, :Contract_accepted, :user_id)");
+                (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
-                ':FIO' => $formData['FIO'],
-                ':Phone_number' => $formData['Phone_number'],
-                ':Email' => $formData['Email'],
-                ':Birth_day' => $formData['Birth_day'],
-                ':Gender' => $formData['Gender'],
-                ':Biography' => $formData['Biography'],
-                ':Contract_accepted' => $formData['Contract_accepted'],
-                ':user_id' => $user_id
+                $user_id,
+                $formData['FIO'],
+                $formData['Phone_number'],
+                $formData['Email'],
+                $formData['Birth_day'],
+                $formData['Gender'],
+                $formData['Biography'],
+                $formData['Contract_accepted']
             ]);
             $application_id = $pdo->lastInsertId();
+
+            // Сохраняем данные для входа
+            setcookie('generated_login', $login, time() + 3600, '/');
+            setcookie('generated_password', $password, time() + 3600, '/');
         }
 
         // Добавляем языки программирования
@@ -164,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        // Сохраняем данные в куки
+        // Сохраняем данные в куки для повторного заполнения
         foreach ($formData as $field => $value) {
             $value = is_array($value) ? implode(',', $value) : $value;
             setcookie("success_$field", $value, time() + 60*60*24*365, '/');
@@ -173,12 +178,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         header('Location: index.php?success=1');
         exit;
-
     } catch (PDOException $e) {
         $pdo->rollBack();
         die("Ошибка при сохранении данных: " . $e->getMessage());
     }
 } else {
+    // Если запрос не POST - перенаправляем на главную
     header('Location: index.php');
     exit;
 }

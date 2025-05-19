@@ -6,6 +6,7 @@ $db_user = 'u68532';
 $db_pass = '9110579';
 $db_name = 'u68532';
 
+// Выход из системы
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     session_unset();
     session_destroy();
@@ -13,11 +14,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     exit();
 }
 
+// Если уже авторизован - перенаправляем
 if (!empty($_SESSION['login'])) {
     header('Location: index.php');
     exit();
 }
 
+// Обработка формы входа
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = trim($_POST['login'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -78,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <button type="submit">Войти</button>
+            
+            <div class="form-footer">
+                <a href="index.php" class="back-link">← Вернуться к форме</a>
+            </div>
         </form>
     </div>
 </body>
