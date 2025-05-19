@@ -1,6 +1,6 @@
 <?php
-header('Content-Type: text/html; charset=utf-8');
 session_start();
+header('Content-Type: text/html; charset=utf-8');
 
 $db_host = 'localhost';
 $db_user = 'u68532';
@@ -18,12 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     $formData = [];
 
-    // Обработка данных формы
     foreach ($_POST as $key => $value) {
         $formData[$key] = is_array($value) ? $value : trim($value);
     }
 
-    // Валидация данных
     if (empty($formData['fio'])) {
         $errors['fio'] = 'Поле ФИО обязательно для заполнения';
     } elseif (!preg_match('/^[A-Za-zА-Яа-яЁё\s]+$/u', $formData['fio'])) {
@@ -38,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($formData['email'])) {
         $errors['email'] = 'Поле Email обязательно для заполнения';
-    } elseif (!filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Введите корректный email';
+    } elseif (!preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $formData['email'])) {
+        $errors['email'] = 'Введите корректный email (пример: user@example.com)';
     }
 
     if (empty($formData['dob'])) {
@@ -67,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!empty($errors)) {
-        // Сохраняем ошибки и значения в куки
         foreach ($errors as $key => $message) {
             setcookie("error_$key", $message, time() + 3600, '/');
         }
@@ -78,120 +75,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         header('Location: index.php');
         exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-
-        // Проверяем, авторизован ли пользователь
-        $isUpdate = isset($_SESSION['user_id']);
-        $application_id = $isUpdate ? $_SESSION['app_id'] : null;
-
-        if ($isUpdate) {
-            // Обновляем существующую заявку
-            $stmt = $pdo->prepare("UPDATE Application SET 
-                                  FIO = :fio, 
-                                  Phone_number = :phone, 
-                                  Email = :email, 
-                                  Birth_day = :dob, 
-                                  Gender = :gender, 
-                                  Biography = :bio
-                                  WHERE ID = :id");
-            $stmt->execute([
-                ':fio' => $formData['fio'],
-                ':phone' => $formData['phone'],
-                ':email' => $formData['email'],
-                ':dob' => $formData['dob'],
-                ':gender' => $formData['gender'],
-                ':bio' => $formData['bio'],
-                ':id' => $application_id
-            ]);
-
-            // Удаляем старые языки
-            $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
-            $stmt->execute([$application_id]);
-        } else {
-            // Создаем новую заявку
-            $stmt = $pdo->prepare("INSERT INTO Application 
-                                  (FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
-                                  VALUES (:fio, :phone, :email, :dob, :gender, :bio, :contract)");
-            $stmt->execute([
-                ':fio' => $formData['fio'],
-                ':phone' => $formData['phone'],
-                ':email' => $formData['email'],
-                ':dob' => $formData['dob'],
-                ':gender' => $formData['gender'],
-                ':bio' => $formData['bio'],
-                ':contract' => 1
-            ]);
-            $application_id = $pdo->lastInsertId();
-        }
-
-        // Добавляем выбранные языки
-        $stmt = $pdo->prepare("INSERT INTO Application_Languages (Application_ID, Language_ID) 
-                              SELECT :app_id, Language_ID FROM Programming_Languages WHERE Name = :language");
-
-        foreach ($formData['language'] as $language) {
-            $stmt->execute([
-                ':app_id' => $application_id,
-                ':language' => $language
-            ]);
-        }
-
-        if (!$isUpdate) {
-            // Генерируем учетные данные только для новой заявки
-            $login = generateRandomString(8);
-            $password = generateRandomString(10);
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-            $stmt = $pdo->prepare("INSERT INTO Users (Login, PasswordHash, ApplicationID) 
-                                  VALUES (:login, :password, :app_id)");
-            $stmt->execute([
-                ':login' => $login,
-                ':password' => $passwordHash,
-                ':app_id' => $application_id
-            ]);
-
-            // Сохраняем логин и пароль в куки
-            setcookie('generated_login', $login, time() + 3600, '/');
-            setcookie('generated_password', $password, time() + 60, '/');
-        }
-
-        $pdo->commit();
-
-        // Очищаем куки с ошибками
+    } else {
         foreach ($_COOKIE as $name => $value) {
             if (strpos($name, 'error_') === 0 || strpos($name, 'value_') === 0) {
                 setcookie($name, '', time() - 3600, '/');
             }
         }
 
-        // Сохраняем данные в куки для автозаполнения
-        foreach ($formData as $field => $value) {
-            if ($field !== 'contract') {
-                $value = is_array($value) ? implode(',', $value) : $value;
-                setcookie("success_$field", $value, time() + 60*60*24*365, '/');
+        try {
+            $pdo->beginTransaction();
+
+            // Проверяем, авторизован ли пользователь
+            $user_id = null;
+            if (!empty($_SESSION['user_id'])) {
+                $user_id = $_SESSION['user_id'];
+                
+                // Обновляем существующую заявку
+                $stmt = $pdo->prepare("UPDATE Application SET 
+                    FIO = :fio, 
+                    Phone_number = :phone, 
+                    Email = :email, 
+                    Birth_day = :dob, 
+                    Gender = :gender, 
+                    Biography = :bio, 
+                    Contract_accepted = :contract 
+                    WHERE user_id = :user_id");
+                $stmt->execute([
+                    ':fio' => $formData['fio'],
+                    ':phone' => $formData['phone'],
+                    ':email' => $formData['email'],
+                    ':dob' => $formData['dob'],
+                    ':gender' => $formData['gender'],
+                    ':bio' => $formData['bio'],
+                    ':contract' => 1,
+                    ':user_id' => $user_id
+                ]);
+                
+                // Удаляем старые языки программирования
+                $stmt = $pdo->prepare("DELETE FROM Application_Languages 
+                                      WHERE Application_ID IN (SELECT Application_ID FROM Application WHERE user_id = ?)");
+                $stmt->execute([$user_id]);
+            } else {
+                // Создаем нового пользователя
+                $login = uniqid('user_');
+                $password = bin2hex(random_bytes(4));
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+                $stmt = $pdo->prepare("INSERT INTO users (login, password) VALUES (?, ?)");
+                $stmt->execute([$login, $password_hash]);
+                $user_id = $pdo->lastInsertId();
+
+                // Сохраняем данные для показа пользователю
+                setcookie('generated_login', $login, time() + 3600, '/');
+                setcookie('generated_password', $password, time() + 3600, '/');
+
+                // Создаем новую заявку
+                $stmt = $pdo->prepare("INSERT INTO Application 
+                    (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
+                    VALUES (:user_id, :fio, :phone, :email, :dob, :gender, :bio, :contract)");
+                $stmt->execute([
+                    ':user_id' => $user_id,
+                    ':fio' => $formData['fio'],
+                    ':phone' => $formData['phone'],
+                    ':email' => $formData['email'],
+                    ':dob' => $formData['dob'],
+                    ':gender' => $formData['gender'],
+                    ':bio' => $formData['bio'],
+                    ':contract' => 1
+                ]);
             }
+
+            $application_id = $pdo->lastInsertId();
+
+            // Добавляем языки программирования
+            $stmt = $pdo->prepare("INSERT INTO Application_Languages (Application_ID, Language_ID) 
+                                  SELECT :app_id, Language_ID FROM Programming_Languages WHERE Name = :language");
+
+            foreach ($formData['language'] as $language) {
+                $stmt->execute([
+                    ':app_id' => $application_id,
+                    ':language' => $language
+                ]);
+            }
+
+            $pdo->commit();
+
+            // Сохраняем данные в куки
+            foreach ($formData as $field => $value) {
+                if ($field !== 'contract') {
+                    $value = is_array($value) ? implode(',', $value) : $value;
+                    setcookie("success_$field", $value, time() + 60*60*24*365, '/');
+                }
+            }
+            setcookie('success_contract', '1', time() + 60*60*24*365, '/');
+
+            header('Location: index.php?success=1');
+            exit;
+
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            die("Ошибка при сохранении данных: " . $e->getMessage());
         }
-        setcookie('success_contract', '1', time() + 60*60*24*365, '/');
-
-        header('Location: index.php?success=1');
-        exit;
-
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        die("Ошибка при сохранении данных: " . $e->getMessage());
     }
 } else {
     header('Location: index.php');
     exit;
-}
-
-function generateRandomString($length = 10) {
-    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $randomString = '';
-    for ($i = 0; $i < $length; $i++) {
-        $randomString .= $characters[rand(0, strlen($characters) - 1)];
-    }
-    return $randomString;
 }

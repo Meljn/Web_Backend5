@@ -1,55 +1,49 @@
 <?php
-header('Content-Type: text/html; charset=utf-8');
 session_start();
-
-if (isset($_SESSION['user_id'])) {
-    header('Location: index.php');
-    exit();
-}
 
 $db_host = 'localhost';
 $db_user = 'u68532';
 $db_pass = '9110579';
 $db_name = 'u68532';
 
-try {
-    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Ошибка подключения к базе данных: " . $e->getMessage());
+if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+    session_unset();
+    session_destroy();
+    header('Location: index.php');
+    exit();
 }
 
-$error = '';
+if (!empty($_SESSION['login'])) {
+    header('Location: index.php');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = trim($_POST['login'] ?? '');
     $password = trim($_POST['password'] ?? '');
+    
+    try {
+        $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_user, $db_pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    if (empty($login) || empty($password)) {
-        $error = 'Логин и пароль обязательны для заполнения';
-    } else {
-        $stmt = $pdo->prepare("SELECT u.UserID, u.Login, u.ApplicationID, a.FIO 
-                              FROM Users u
-                              JOIN Application a ON u.ApplicationID = a.ID
-                              WHERE u.Login = ?");
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE login = ?");
         $stmt->execute([$login]);
         $user = $stmt->fetch();
-
-        if ($user) {
-            // Проверяем пароль
-            $stmt = $pdo->prepare("SELECT PasswordHash FROM Users WHERE Login = ?");
-            $stmt->execute([$login]);
-            $dbPassword = $stmt->fetchColumn();
-            
-            if ($dbPassword && password_verify($password, $dbPassword)) {
-                $_SESSION['user_id'] = $user['UserID'];
-                $_SESSION['login'] = $user['Login'];
-                $_SESSION['app_id'] = $user['ApplicationID'];
-                $_SESSION['fio'] = $user['FIO'];
-                header('Location: index.php');
-                exit();
-            }
+        
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['login'] = $user['login'];
+            $_SESSION['user_id'] = $user['id'];
+            header('Location: index.php');
+            exit();
+        } else {
+            $_SESSION['error_message'] = 'Неверный логин или пароль';
+            header('Location: login.php');
+            exit();
         }
-        $error = 'Неверный логин или пароль';
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = 'Ошибка системы';
+        header('Location: login.php');
+        exit();
     }
 }
 ?>
@@ -58,26 +52,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Вход</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="form-container">
+    <div class="login-container">
         <h1>Вход в систему</h1>
         
-        <?php if ($error): ?>
-            <div class="error-messages"><?= htmlspecialchars($error) ?></div>
+        <?php if (!empty($_SESSION['error_message'])): ?>
+            <div class="error-message">
+                <?= htmlspecialchars($_SESSION['error_message']) ?>
+            </div>
+            <?php unset($_SESSION['error_message']); ?>
         <?php endif; ?>
-
-        <form method="post">
+        
+        <form method="POST" class="login-form">
             <div class="form-group">
-                <label>Логин:</label>
-                <input type="text" name="login" required>
+                <label for="login">Логин:</label>
+                <input type="text" id="login" name="login" required>
             </div>
             
             <div class="form-group">
-                <label>Пароль:</label>
-                <input type="password" name="password" required>
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required>
             </div>
             
             <button type="submit">Войти</button>

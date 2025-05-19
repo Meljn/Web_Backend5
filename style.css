@@ -204,6 +204,84 @@ select[multiple]::-webkit-scrollbar-thumb {
             color: #00aa00;
 }
 
+.user-info {
+    background-color: #2e2e2e;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logout-link {
+    color: #8ab4f8;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.credentials {
+    background-color: #2e2e2e;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+.login-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #8ab4f8;
+    text-decoration: none;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 25px;
+    background: #262626;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    border: 1px solid #333;
+}
+
+.login-form .form-group {
+    margin-bottom: 15px;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 5px;
+    color: #d1d1d1;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #404040;
+    border-radius: 5px;
+    background-color: #333;
+    color: #f0f0f0;
+}
+
+.login-form button {
+    background-color: #1a73e8;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.error-message {
+    color: #d65454;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #2e1f1f;
+    border-radius: 5px;
+}
+
 label {
     display: block;
     margin-bottom: 5px;
@@ -230,29 +308,6 @@ button {
 }
 button:hover {
     background-color: #45a049;
-}
-
-.logout-panel {
-    background: #333;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    color: white;
-    text-align: right;
-}
-
-.logout-panel form {
-    display: inline-block;
-    margin-left: 15px;
-}
-
-.logout-panel button {
-    background: #d33;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 3px;
-    cursor: pointer;
 }
 
 @media (max-width: 640px) {
