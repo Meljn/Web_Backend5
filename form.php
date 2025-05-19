@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $password = bin2hex(random_bytes(4));
                 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-                $stmt = $pdo->prepare("INSERT INTO users (login, password) VALUES (?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO Users (login, password) VALUES (?, ?)");
                 $stmt->execute([$login, $password_hash]);
                 $user_id = $pdo->lastInsertId();
 

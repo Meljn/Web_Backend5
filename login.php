@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE login = ?");
+        $stmt = $pdo->prepare("SELECT * FROM Users WHERE login = ?");
         $stmt->execute([$login]);
         $user = $stmt->fetch();
         
