@@ -112,9 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':contract' => $formData['Contract_accepted'],
                     ':id' => $application_id
                 ]);
-        
-                $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
-                $stmt->execute([$application_id]);
             } else {
                 $stmt = $pdo->prepare("INSERT INTO Application 
                     (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
@@ -132,7 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $application_id = $pdo->lastInsertId();
             }
+
+            $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
+            $stmt->execute([$application_id]);
         } else {
+        
             $login = 'user_' . bin2hex(random_bytes(4));
             $password = bin2hex(random_bytes(4));
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
