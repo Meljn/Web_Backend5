@@ -87,33 +87,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         if (isset($_SESSION['user_id'])) {
-            $stmt = $pdo->prepare("UPDATE Application SET 
-                FIO = :fio, 
-                Phone_number = :phone, 
-                Email = :email, 
-                Birth_day = :birth_day, 
-                Gender = :gender, 
-                Biography = :bio, 
-                Contract_accepted = :contract
-                WHERE user_id = :user_id");
-            
-            $stmt->execute([
-                ':fio' => $formData['FIO'],
-                ':phone' => $formData['Phone_number'],
-                ':email' => $formData['Email'],
-                ':birth_day' => $formData['Birth_day'],
-                ':gender' => $formData['Gender'],
-                ':bio' => $formData['Biography'],
-                ':contract' => $formData['Contract_accepted'],
-                ':user_id' => $_SESSION['user_id']
-            ]);
-            
             $stmt = $pdo->prepare("SELECT ID FROM Application WHERE user_id = ?");
             $stmt->execute([$_SESSION['user_id']]);
             $application_id = $stmt->fetchColumn();
-            
-            $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
-            $stmt->execute([$application_id]);
+
+            if ($application_id) {
+                $stmt = $pdo->prepare("UPDATE Application SET 
+                    FIO = :fio, 
+                    Phone_number = :phone, 
+                    Email = :email, 
+                    Birth_day = :birth_day, 
+                    Gender = :gender, 
+                    Biography = :bio, 
+                    Contract_accepted = :contract
+                    WHERE ID = :id");
+                
+                $stmt->execute([
+                    ':fio' => $formData['FIO'],
+                    ':phone' => $formData['Phone_number'],
+                    ':email' => $formData['Email'],
+                    ':birth_day' => $formData['Birth_day'],
+                    ':gender' => $formData['Gender'],
+                    ':bio' => $formData['Biography'],
+                    ':contract' => $formData['Contract_accepted'],
+                    ':id' => $application_id
+                ]);
+        
+                $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
+                $stmt->execute([$application_id]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO Application 
+                    (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                
+                $stmt->execute([
+                    $_SESSION['user_id'],
+                    $formData['FIO'],
+                    $formData['Phone_number'],
+                    $formData['Email'],
+                    $formData['Birth_day'],
+                    $formData['Gender'],
+                    $formData['Biography'],
+                    $formData['Contract_accepted']
+                ]);
+                $application_id = $pdo->lastInsertId();
+            }
         } else {
             $login = 'user_' . bin2hex(random_bytes(4));
             $password = bin2hex(random_bytes(4));
