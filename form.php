@@ -23,34 +23,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $formData[$key] = is_array($value) ? $value : trim($value);
     }
 
-    if (empty($formData['FIO'])) {
-        $errors['FIO'] = 'Поле ФИО обязательно для заполнения';
-    } elseif (!preg_match('/^[A-Za-zА-Яа-яЁё\s]+$/u', $formData['FIO'])) {
+    if (empty($formData['FIO']) || !preg_match('/^[A-Za-zА-Яа-яЁё\s]+$/u', $formData['FIO'])) {
         $errors['FIO'] = 'ФИО должно содержать только буквы и пробелы';
     }
 
-    if (empty($formData['Phone_number'])) {
-        $errors['Phone_number'] = 'Поле Телефон обязательно для заполнения';
-    } elseif (!preg_match('/^\+?[0-9]{10,15}$/', $formData['Phone_number'])) {
+    if (empty($formData['Phone_number']) || !preg_match('/^\+?[0-9]{10,15}$/', $formData['Phone_number'])) {
         $errors['Phone_number'] = 'Телефон должен содержать 10-15 цифр, может начинаться с +';
     }
 
-    if (empty($formData['Email'])) {
-        $errors['Email'] = 'Поле Email обязательно для заполнения';
-    } elseif (!filter_var($formData['Email'], FILTER_VALIDATE_EMAIL)) {
+    if (empty($formData['Email']) || !filter_var($formData['Email'], FILTER_VALIDATE_EMAIL)) {
         $errors['Email'] = 'Введите корректный email';
     }
 
-    if (empty($formData['Birth_day'])) {
-        $errors['Birth_day'] = 'Поле Дата рождения обязательно для заполнения';
-    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $formData['Birth_day'])) {
+    if (empty($formData['Birth_day']) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $formData['Birth_day'])) {
         $errors['Birth_day'] = 'Введите дату в формате ГГГГ-ММ-ДД';
     }
 
-    if (empty($formData['Gender'])) {
-        $errors['Gender'] = 'Укажите ваш пол';
-    } elseif (!in_array($formData['Gender'], ['male', 'female'])) {
-        $errors['Gender'] = 'Выбран недопустимый пол';
+    if (empty($formData['Gender']) || !in_array($formData['Gender'], ['male', 'female'])) {
+        $errors['Gender'] = 'Выберите пол';
     }
 
     if (empty($formData['language'])) {
@@ -62,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!isset($formData['Contract_accepted'])) {
-        $errors['Contract_accepted'] = 'Необходимо согласиться с условиями';
+        $errors['Contract_accepted'] = 'Необходимо согласие';
     }
 
     if (!empty($errors)) {
@@ -87,11 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         if (isset($_SESSION['user_id'])) {
+            $user_id = $_SESSION['user_id'];
             $stmt = $pdo->prepare("SELECT ID FROM Application WHERE user_id = ?");
-            $stmt->execute([$_SESSION['user_id']]);
+            $stmt->execute([$user_id]);
             $application_id = $stmt->fetchColumn();
 
             if ($application_id) {
+
                 $stmt = $pdo->prepare("UPDATE Application SET 
                     FIO = :fio, 
                     Phone_number = :phone, 
@@ -112,28 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':contract' => $formData['Contract_accepted'],
                     ':id' => $application_id
                 ]);
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO Application 
-                    (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                
-                $stmt->execute([
-                    $_SESSION['user_id'],
-                    $formData['FIO'],
-                    $formData['Phone_number'],
-                    $formData['Email'],
-                    $formData['Birth_day'],
-                    $formData['Gender'],
-                    $formData['Biography'],
-                    $formData['Contract_accepted']
-                ]);
-                $application_id = $pdo->lastInsertId();
-            }
 
-            $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
-            $stmt->execute([$application_id]);
+                $stmt = $pdo->prepare("DELETE FROM Application_Languages WHERE Application_ID = ?");
+                $stmt->execute([$application_id]);
+            } else {
+                throw new Exception("Не найдена заявка пользователя. Обратитесь к администратору.");
+            }
         } else {
-        
             $login = 'user_' . bin2hex(random_bytes(4));
             $password = bin2hex(random_bytes(4));
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
@@ -142,10 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$login, $password_hash]);
             $user_id = $pdo->lastInsertId();
 
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['login'] = $login;
+
             $stmt = $pdo->prepare("INSERT INTO Application 
                 (user_id, FIO, Phone_number, Email, Birth_day, Gender, Biography, Contract_accepted) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            
+
             $stmt->execute([
                 $user_id,
                 $formData['FIO'],
@@ -156,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['Biography'],
                 $formData['Contract_accepted']
             ]);
+
             $application_id = $pdo->lastInsertId();
 
             setcookie('generated_login', $login, time() + 3600, '/');
@@ -171,17 +152,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->commit();
 
-        if (!isset($_SESSION['user_id'])) {
-            foreach ($formData as $field => $value) {
-                $value = is_array($value) ? implode(',', $value) : $value;
-                setcookie("success_$field", $value, time() + 3600, '/');
-            }
-            setcookie('success_Contract_accepted', '1', time() + 3600, '/');
-        }
-
         header('Location: index.php?success=1');
         exit;
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         $pdo->rollBack();
         die("Ошибка при сохранении данных: " . $e->getMessage());
     }
