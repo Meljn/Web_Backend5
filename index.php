@@ -9,16 +9,14 @@ function getFieldValue($fieldName, $default = '') {
             $db_user = 'u68532';
             $db_pass = '9110579';
             $db_name = 'u68532';
-
-            // Подключение к базе данных
+            
             $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            // Получаем данные из таблицы Application
+            
             $stmt = $pdo->prepare("SELECT * FROM Application WHERE user_id = ?");
             $stmt->execute([$_SESSION['user_id']]);
             $application = $stmt->fetch();
-
+            
             if ($application) {
                 if ($fieldName === 'language') {
                     $stmt = $pdo->prepare("SELECT p.Name FROM Programming_Languages p 
@@ -28,7 +26,7 @@ function getFieldValue($fieldName, $default = '') {
                     $languages = $stmt->fetchAll(PDO::FETCH_COLUMN);
                     return implode(',', $languages);
                 }
-
+                
                 if (isset($application[$fieldName])) {
                     return htmlspecialchars($application[$fieldName], ENT_QUOTES, 'UTF-8');
                 }
@@ -37,7 +35,22 @@ function getFieldValue($fieldName, $default = '') {
             error_log("Ошибка при загрузке данных: " . $e->getMessage());
         }
     }
+    
+    if (isset($_COOKIE["value_$fieldName"])) {
+        return htmlspecialchars($_COOKIE["value_$fieldName"], ENT_QUOTES, 'UTF-8');
+    }
+    if (isset($_COOKIE["success_$fieldName"])) {
+        return htmlspecialchars($_COOKIE["success_$fieldName"], ENT_QUOTES, 'UTF-8');
+    }
+    
     return $default;
+}
+
+function getFieldError($fieldName) {
+    if (isset($_COOKIE["error_$fieldName"])) {
+        return htmlspecialchars($_COOKIE["error_$fieldName"], ENT_QUOTES, 'UTF-8');
+    }
+    return '';
 }
 
 $formErrors = [];
@@ -76,12 +89,6 @@ foreach ($_COOKIE as $name => $value) {
 
         <h1>Форма обратной связи</h1>
 
-        <?php if (isset($_GET['success'])): ?>
-            <div class="success-message">
-                Данные успешно обновлены!
-            </div>
-        <?php endif; ?>
-
         <?php if (!empty($formErrors)): ?>
             <div class="error-messages">
                 <h3>Ошибки при заполнении формы:</h3>
@@ -90,6 +97,19 @@ foreach ($_COOKIE as $name => $value) {
                         <li><?= $error ?></li>
                     <?php endforeach; ?>
                 </ul>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['success'])): ?>
+            <div class="success-message">
+                Данные успешно сохранены!
+                <?php if (isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password'])): ?>
+                    <div class="credentials">
+                        <strong>Ваши данные для входа:</strong><br>
+                        Логин: <?= htmlspecialchars($_COOKIE['generated_login'], ENT_QUOTES, 'UTF-8') ?><br>
+                        Пароль: <?= htmlspecialchars($_COOKIE['generated_password'], ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
