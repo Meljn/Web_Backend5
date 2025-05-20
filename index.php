@@ -4,9 +4,6 @@ header('Content-Type: text/html; charset=utf-8');
 
 function getFieldValue($fieldName, $default = '') {
     if (isset($_SESSION['user_id'])) {
-        static $cachedApplication = null;
-        static $cachedLanguages = null;
-
         try {
             $db_host = 'localhost';
             $db_user = 'u68532';
@@ -16,25 +13,23 @@ function getFieldValue($fieldName, $default = '') {
             $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            if ($cachedApplication === null) {
-                $stmt = $pdo->prepare("SELECT * FROM Application WHERE user_id = ?");
-                $stmt->execute([$_SESSION['user_id']]);
-                $cachedApplication = $stmt->fetch();
-            }
+            $stmt = $pdo->prepare("SELECT * FROM Application WHERE user_id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $application = $stmt->fetch();
 
-            if ($fieldName === 'language') {
-                if ($cachedLanguages === null && $cachedApplication) {
+            if ($application) {
+                if ($fieldName === 'language') {
                     $stmt = $pdo->prepare("SELECT p.Name FROM Programming_Languages p 
                                            JOIN Application_Languages a ON p.Language_ID = a.Language_ID 
                                            WHERE a.Application_ID = ?");
-                    $stmt->execute([$cachedApplication['ID']]);
-                    $cachedLanguages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    $stmt->execute([$application['ID']]);
+                    $languages = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    return implode(',', $languages);
                 }
-                return $cachedLanguages ? implode(',', $cachedLanguages) : '';
-            }
 
-            if ($cachedApplication && isset($cachedApplication[$fieldName])) {
-                return htmlspecialchars($cachedApplication[$fieldName], ENT_QUOTES, 'UTF-8');
+                if (isset($application[$fieldName])) {
+                    return htmlspecialchars($application[$fieldName], ENT_QUOTES, 'UTF-8');
+                }
             }
         } catch (PDOException $e) {
             error_log("Ошибка при загрузке данных: " . $e->getMessage());
@@ -53,7 +48,10 @@ function getFieldValue($fieldName, $default = '') {
 }
 
 function getFieldError($fieldName) {
-    return isset($_COOKIE["error_$fieldName"]) ? htmlspecialchars($_COOKIE["error_$fieldName"], ENT_QUOTES, 'UTF-8') : '';
+    if (isset($_COOKIE["error_$fieldName"])) {
+        return htmlspecialchars($_COOKIE["error_$fieldName"], ENT_QUOTES, 'UTF-8');
+    }
+    return '';
 }
 
 $formErrors = [];
@@ -67,7 +65,6 @@ foreach ($_COOKIE as $name => $value) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Форма обратной связи</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -106,7 +103,7 @@ foreach ($_COOKIE as $name => $value) {
     <?php if (isset($_GET['success'])): ?>
         <div class="success-message">
             Данные успешно сохранены!
-            <?php if (isset($_COOKIE['generated_login'], $_COOKIE['generated_password'])): ?>
+            <?php if (!isset($_SESSION['user_id']) && isset($_COOKIE['generated_login']) && isset($_COOKIE['generated_password'])): ?>
                 <div class="credentials">
                     <strong>Ваши данные для входа:</strong><br>
                     Логин: <?= htmlspecialchars($_COOKIE['generated_login'], ENT_QUOTES, 'UTF-8') ?><br>
@@ -120,27 +117,42 @@ foreach ($_COOKIE as $name => $value) {
         <div class="form-group <?= getFieldError('FIO') ? 'has-error' : '' ?>">
             <label for="FIO">ФИО:</label>
             <input type="text" id="FIO" name="FIO" value="<?= getFieldValue('FIO') ?>" required>
+            <?php if ($error = getFieldError('FIO')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Phone_number') ? 'has-error' : '' ?>">
             <label for="Phone_number">Телефон:</label>
             <input type="tel" id="Phone_number" name="Phone_number" value="<?= getFieldValue('Phone_number') ?>" required>
+            <?php if ($error = getFieldError('Phone_number')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Email') ? 'has-error' : '' ?>">
             <label for="Email">Email:</label>
             <input type="email" id="Email" name="Email" value="<?= getFieldValue('Email') ?>" required>
+            <?php if ($error = getFieldError('Email')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Birth_day') ? 'has-error' : '' ?>">
             <label for="Birth_day">Дата рождения:</label>
             <input type="date" id="Birth_day" name="Birth_day" value="<?= getFieldValue('Birth_day') ?>" required>
+            <?php if ($error = getFieldError('Birth_day')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Gender') ? 'has-error' : '' ?>">
             <label>Пол:</label>
-            <label><input type="radio" name="Gender" value="male" <?= getFieldValue('Gender') === 'male' ? 'checked' : '' ?>> Мужской</label>
+            <label><input type="radio" name="Gender" value="male" <?= getFieldValue('Gender') === 'male' ? 'checked' : '' ?> required> Мужской</label>
             <label><input type="radio" name="Gender" value="female" <?= getFieldValue('Gender') === 'female' ? 'checked' : '' ?>> Женский</label>
+            <?php if ($error = getFieldError('Gender')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('language') ? 'has-error' : '' ?>">
@@ -155,18 +167,26 @@ foreach ($_COOKIE as $name => $value) {
                     </option>
                 <?php endforeach; ?>
             </select>
+            <?php if ($error = getFieldError('language')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Biography') ? 'has-error' : '' ?>">
             <label for="Biography">Биография:</label>
             <textarea id="Biography" name="Biography" rows="5" required><?= getFieldValue('Biography') ?></textarea>
+            <?php if ($error = getFieldError('Biography')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group <?= getFieldError('Contract_accepted') ? 'has-error' : '' ?>">
-            <label>
-                <input type="checkbox" name="Contract_accepted" value="1" <?= getFieldValue('Contract_accepted') === '1' ? 'checked' : '' ?> required>
+            <label><input type="checkbox" name="Contract_accepted" value="1" <?= getFieldValue('Contract_accepted') === '1' ? 'checked' : '' ?> required>
                 Согласен с условиями
             </label>
+            <?php if ($error = getFieldError('Contract_accepted')): ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
         </div>
 
         <button type="submit"><?= isset($_SESSION['user_id']) ? 'Обновить данные' : 'Отправить' ?></button>
